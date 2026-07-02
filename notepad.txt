@@ -1,0 +1,45 @@
+# RENCANA INTEGRASI SELANJUTNYA - EWS SEMERU
+
+Berdasarkan pembaruan terkini (GoRouter, Riverpod, dan UI Glassmorphism), berikut adalah daftar lengkap dan rinci apa saja yang harus diintegrasikan selanjutnya beserta letak file dan library yang dibutuhkan.
+
+## 1. Integrasi Library Grafik Nyata (fl_chart)
+Saat ini grafik di halaman detail masih menggunakan `_LargeFakeChartPainter` (simulasi).
+*   **Produk/Library yang ditambahkan**: `fl_chart`
+*   **Perintah Terminal**: `flutter pub add fl_chart`
+*   **File yang dimodifikasi**: `lib/screens/chart_detail_screen.dart`
+*   **Tugas Rinci**:
+    *   Hapus class `_LargeFakeChartPainter`.
+    *   Ganti `CustomPaint(...)` dengan widget `LineChart` dari library `fl_chart`.
+    *   Ambil data riwayat sensor (List dari `SensorData`) untuk dimasukkan sebagai koordinat `FlSpot` di dalam `LineChartData`.
+
+## 2. Integrasi Riverpod Provider untuk DataService
+Karena `app_router.dart` sudah terhubung dengan Riverpod, kita perlu membuat provider agar DataService dapat diakses dengan mudah oleh seluruh halaman (Screen) tanpa harus dipassing manual (dependency injection manual).
+*   **File yang ditambahkan**: `lib/providers/data_provider.dart` (Buat folder `providers` jika belum ada).
+*   **Tugas Rinci**:
+    *   Buat variabel global: `final dataServiceProvider = Provider<DataService>((ref) => DummyDataService());`
+    *   Di dalam screen seperti `MainScreen` atau `ChartDetailScreen`, gunakan `ConsumerWidget` dan `ref.watch(dataServiceProvider)` untuk memanggil fungsi pembuat data.
+
+## 3. Integrasi Backend Real / API
+Aplikasi saat ini menggunakan `DummyDataService` yang datanya bersifat statis dan delay palsu. Kita perlu menyambungkan dengan server sesungguhnya.
+*   **Produk/Layanan Pilihan**: Backend API Custom (REST API HTTP), Firebase, atau Supabase.
+*   **Library yang ditambahkan**: `http` (untuk API), `firebase_core` & `cloud_firestore` (jika Firebase).
+*   **File yang ditambahkan**: `lib/services/api_data_service.dart` atau `lib/services/firebase_data_service.dart`.
+*   **File yang dimodifikasi**: `lib/providers/data_provider.dart` (atau `main.dart`).
+*   **Tugas Rinci**:
+    *   Buat class baru (misal `ApiDataService`) yang meng-`implements DataService`.
+    *   Tulis fungsi pemanggilan HTTP `GET` untuk method `getVolcanoStatus()`, `getSensorData()`, dsb.
+    *   Ubah nilai kembalian dari raw JSON menjadi model (menggunakan `.fromJson()`).
+    *   Setelah selesai, ubah nilai dari `dataServiceProvider` (di langkah 2) untuk mengembalikan `ApiDataService()` alih-alih `DummyDataService()`.
+
+## 4. Integrasi WebSockets / MQTT untuk Real-Time Stream
+Status darurat letusan gunung berapi membutuhkan notifikasi instan.
+*   **Produk/Library yang ditambahkan**: `mqtt_client` atau `web_socket_channel`
+*   **File yang dimodifikasi**: `lib/services/api_data_service.dart` (atau file service asli yang akan dibuat).
+*   **Tugas Rinci**:
+    *   Isi getter `Stream<VolcanoStatus>? get statusStream` yang tadinya `null` menjadi stream dari WebSockets atau MQTT.
+    *   Di UI utama, gunakan `ref.watch(statusStreamProvider)` agar layar bisa otomatis berkedip/merubah warna secara *real-time* saat bahaya tiba.
+
+## 5. Integrasi Logic Redirect Router (GoRouter)
+*   **File yang dimodifikasi**: `lib/router/app_router.dart`
+*   **Tugas Rinci**:
+    *   Gunakan parameter `redirect` pada `GoRouter` untuk mengarahkan pengguna. Contoh: jika `isSystemOnline()` mengembalikan false (server mati/koneksi putus), secara otomatis alihkan ke layar khusus "Koneksi Terputus" untuk keamanan.
