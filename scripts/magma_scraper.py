@@ -26,22 +26,47 @@ def get_pb_token():
     print(f"❌ Login gagal: {response.status_code} {response.text}")
     return None
 
-def check_duplicate(token, laporan_url):
-    """Cek apakah laporan_url sudah ada di database."""
+def check_duplicate(token, new_data):
+    """Cek apakah laporan_url sudah ada atau data sama persis dengan data terbaru di database."""
     headers = {"Authorization": f"Bearer {token}"}
     url = f"{POCKETBASE_URL}/api/collections/volcano_status/records"
-    params = {
-        "filter": f'laporan_url="{laporan_url}"',
-        "perPage": 1
-    }
+    
+    # 1. Cek berdasarkan laporan_url
+    laporan_url = new_data.get("laporan_url", "")
+    if laporan_url:
+        params = {
+            "filter": f'laporan_url="{laporan_url}"',
+            "perPage": 1
+        }
+        try:
+            res = requests.get(url, headers=headers, params=params)
+            if res.status_code == 200 and res.json().get("totalItems", 0) > 0:
+                return True, "Laporan dengan URL ini sudah ada di database."
+        except Exception as e:
+            print(f"Peringatan saat cek duplikat URL: {e}")
+
+    # 2. Cek berdasarkan kemiripan data dengan record terbaru
     try:
-        res = requests.get(url, headers=headers, params=params)
-        if res.status_code == 200:
-            data = res.json()
-            return data.get("totalItems", 0) > 0
+        params_latest = {
+            "sort": "-created",
+            "perPage": 1
+        }
+        res_latest = requests.get(url, headers=headers, params=params_latest)
+        if res_latest.status_code == 200:
+            body = res_latest.json()
+            if body.get("totalItems", 0) > 0:
+                latest = body["items"][0]
+                # Jika data sama persis dengan record terakhir, anggap duplikat
+                if (latest.get("kegempaan") == new_data.get("kegempaan") and
+                    latest.get("visual") == new_data.get("visual") and
+                    latest.get("klimatologi") == new_data.get("klimatologi") and
+                    latest.get("level") == new_data.get("level") and
+                    latest.get("gempa_total") == new_data.get("gempa_total")):
+                    return True, "Data sama persis dengan laporan terakhir (tidak ada perubahan)."
     except Exception as e:
-        print(f"Peringatan saat cek duplikat: {e}")
-    return False
+        print(f"Peringatan saat cek data terbaru: {e}")
+        
+    return False, ""
 
 def fetch_magma_data():
     print(f"Mencari laporan terbaru Semeru di {MAGMA_URL} ...")
@@ -202,9 +227,10 @@ def main():
             else:
                 data = fetch_magma_data()
                 if data:
-                    # Cek duplikat berdasarkan laporan_url
-                    if data.get("laporan_url") and check_duplicate(token, data["laporan_url"]):
-                        print("⏭️ Laporan sudah ada di database, skip (tidak duplikat).")
+                    # Cek duplikat data & URL
+                    is_duplicate, reason = check_duplicate(token, data)
+                    if is_duplicate:
+                        print(f"⏭️ Skip penyimpanan: {reason}")
                     else:
                         push_to_pocketbase(token, data)
                         print("🎉 Data baru berhasil diperbarui!")
