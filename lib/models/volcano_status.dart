@@ -21,7 +21,7 @@ class VolcanoStatus {
   final String kegempaan;
   final String rekomendasi;
   final String author;
-  final int gempaTotal;
+  final int _gempaTotal;
   final String laporanUrl;
   final DateTime updatedAt;
 
@@ -33,10 +33,24 @@ class VolcanoStatus {
     this.kegempaan = '',
     this.rekomendasi = '',
     this.author = '',
-    this.gempaTotal = 0,
+    int gempaTotal = 0,
     this.laporanUrl = '',
     required this.updatedAt,
-  });
+  }) : _gempaTotal = gempaTotal;
+
+  /// Total gempa — jika field dari DB = 0 tapi teks kegempaan ada,
+  /// hitung otomatis dari teks (fallback untuk data lama).
+  int get gempaTotal {
+    if (_gempaTotal > 0) return _gempaTotal;
+    if (kegempaan.isEmpty) return 0;
+    // Parse "X kali" dari setiap baris teks kegempaan
+    int total = 0;
+    final regex = RegExp(r'(\d+)\s+kali', caseSensitive: false);
+    for (final match in regex.allMatches(kegempaan)) {
+      total += int.tryParse(match.group(1) ?? '') ?? 0;
+    }
+    return total;
+  }
 
   /// Label teks untuk ditampilkan di UI.
   String get levelLabel {
@@ -135,7 +149,6 @@ class VolcanoStatus {
   }
 
   /// Parse list kegempaan menjadi daftar per jenis gempa.
-  /// Misal: ["18 kali gempa Letusan/Erupsi...", "1 kali gempa Guguran..."]
   List<String> get kegempaanList {
     if (kegempaan.isEmpty) return [];
     return kegempaan
