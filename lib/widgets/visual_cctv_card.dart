@@ -6,7 +6,6 @@ import '../theme/app_theme.dart';
 
 class VisualCctvCard extends StatefulWidget {
   final VolcanoStatus status;
-  final String cctvYoutubeId;
 
   const VisualCctvCard({
     super.key, 
