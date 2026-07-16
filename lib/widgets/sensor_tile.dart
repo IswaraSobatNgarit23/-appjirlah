@@ -13,6 +13,8 @@ class SensorTile extends StatelessWidget {
   final double? progressValue; // 0.0 - 1.0, null = tidak tampil
   final String? trendLabel; // contoh: '+2.3' atau '-0.5'
   final bool trendUp;
+  final VoidCallback? onTap;
+  final bool isVertical;
 
   const SensorTile({
     super.key,
@@ -24,6 +26,8 @@ class SensorTile extends StatelessWidget {
     this.progressValue,
     this.trendLabel,
     this.trendUp = true,
+    this.onTap,
+    this.isVertical = false,
   });
 
   @override
@@ -31,78 +35,87 @@ class SensorTile extends StatelessWidget {
     final effectiveIconColor = iconColor ?? context.ewsColors.accent;
 
     return GlassCard(
-      padding: const EdgeInsets.all(16),
-      blurSigma: 8,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // --- Icon container ---
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  effectiveIconColor.withValues(alpha: 0.2),
-                  effectiveIconColor.withValues(alpha: 0.08),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(AppTheme.radiusS + 2),
-              border: Border.all(
-                color: effectiveIconColor.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Icon(icon, size: 26, color: effectiveIconColor),
-          ),
-          const SizedBox(width: 14),
-
-          // --- Label + progress ---
-          Expanded(
+      padding: EdgeInsets.zero,
+      blurSigma: 0,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          highlightColor: effectiveIconColor.withValues(alpha: 0.05),
+          splashColor: effectiveIconColor.withValues(alpha: 0.1),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: context.bodyMedium),
-                if (progressValue != null) ...[
+                // Baris Atas: Ikon (kiri) & Trend (kanan)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: effectiveIconColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                      ),
+                      child: Icon(icon, size: 18, color: effectiveIconColor),
+                    ),
+                    if (trendLabel != null)
+                      _TrendBadge(label: trendLabel!, isUp: trendUp, color: effectiveIconColor),
+                  ],
+                ),
+                
+                // Mendorong konten teks ke bagian bawah
+                const Spacer(),
+                
+                // Label
+                Text(
+                  label, 
+                  style: context.bodyMedium.copyWith(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                
+                // Value + Unit
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      value, 
+                      style: context.sensorValue.copyWith(
+                        color: context.ewsColors.textPrimary,
+                        fontSize: 22,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        unit,
+                        style: context.caption.copyWith(
+                          fontSize: 10,
+                          color: context.ewsColors.textTertiary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Progress Bar (hanya untuk tile yang tall/kiri)
+                if (progressValue != null && isVertical) ...[
                   const SizedBox(height: 8),
                   _ProgressBar(value: progressValue!, color: effectiveIconColor),
                 ],
               ],
             ),
           ),
-
-          const SizedBox(width: 12),
-
-          // --- Value + unit + trend ---
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(value, style: context.sensorValue.copyWith(color: context.ewsColors.textPrimary)),
-                  const SizedBox(width: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Text(
-                      unit,
-                      style: context.caption.copyWith(
-                        fontSize: 10,
-                        color: context.ewsColors.textTertiary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (trendLabel != null) ...[
-                const SizedBox(height: 2),
-                _TrendBadge(label: trendLabel!, isUp: trendUp, color: effectiveIconColor),
-              ],
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

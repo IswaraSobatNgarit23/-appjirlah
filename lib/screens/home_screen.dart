@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
@@ -24,7 +25,6 @@ class HomeScreen extends ConsumerWidget {
     return GradientBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: _buildAppBar(context, onlineAsync),
         body: error != null
             ? ErrorStateView(
                 error: error,
@@ -34,126 +34,89 @@ class HomeScreen extends ConsumerWidget {
                   ref.invalidate(systemOnlineProvider);
                 },
               )
-            : isLoading
-                ? _buildLoadingState(context)
-                : RefreshIndicator(
-                    onRefresh: () async {
-                      ref.invalidate(volcanoStatusProvider);
-                      ref.invalidate(sensorDataProvider);
-                      ref.invalidate(systemOnlineProvider);
-                    },
-                    color: context.ewsColors.accent,
-                    backgroundColor: context.ewsColors.bgCard,
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // --- Status Hero Card ---
-                          if (statusAsync.hasValue)
-                            StatusHeroCard(status: statusAsync.value!),
-
-                          const SizedBox(height: 28),
-
-                          // --- Section Header: Data Sensor ---
-                          _SectionHeader(
-                            label: 'DATA SENSOR',
-                            subtitle: sensorAsync.hasValue
-                                ? 'Diperbarui ${sensorAsync.value!.formattedUpdateTime}'
-                                : null,
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // --- Sensor Tiles ---
-                          if (sensorAsync.hasValue) ...[
-                            SensorTile(
-                              label: 'Amplitudo Getaran',
-                              value: sensorAsync.value!.amplitudo
-                                  .toStringAsFixed(1),
-                              unit: 'mm',
-                              icon: Icons.vibration_rounded,
-                              iconColor: const Color(0xFFFF6B6B),
-                              progressValue:
-                                  (sensorAsync.value!.amplitudo / 10.0)
-                                      .clamp(0.0, 1.0),
-                              trendLabel: '+0.3',
-                              trendUp: true,
+            : RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(volcanoStatusProvider);
+                  ref.invalidate(sensorDataProvider);
+                  ref.invalidate(systemOnlineProvider);
+                },
+                color: context.ewsColors.accent,
+                backgroundColor: context.ewsColors.bgCard,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    _buildSliverAppBar(context, onlineAsync),
+                    if (isLoading)
+                      SliverFillRemaining(
+                        child: _buildLoadingState(context),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            if (statusAsync.hasValue)
+                              StatusHeroCard(status: statusAsync.value!),
+                            
+                            const SizedBox(height: 28),
+                            _SectionHeader(
+                              label: 'DATA SENSOR',
+                              subtitle: sensorAsync.hasValue
+                                  ? 'Diperbarui ${sensorAsync.value!.formattedUpdateTime}'
+                                  : null,
                             ),
-                            const SizedBox(height: 10),
-                            SensorTile(
-                              label: 'Suhu Kawah',
-                              value:
-                                  sensorAsync.value!.suhu.toStringAsFixed(1),
-                              unit: '°C',
-                              icon: Icons.thermostat_rounded,
-                              iconColor: const Color(0xFFFF8C42),
-                              progressValue:
-                                  (sensorAsync.value!.suhu / 1000.0)
-                                      .clamp(0.0, 1.0),
-                              trendLabel: '-12°',
-                              trendUp: false,
-                            ),
-                            const SizedBox(height: 10),
-                            SensorTile(
-                              label: 'Gempa Vulkanik',
-                              value:
-                                  '${sensorAsync.value!.gempaCount}',
-                              unit: 'kali/hari',
-                              icon: Icons.timeline_rounded,
-                              iconColor: const Color(0xFF4A9EFF),
-                              progressValue:
-                                  (sensorAsync.value!.gempaCount / 50.0)
-                                      .clamp(0.0, 1.0),
-                              trendLabel: '+5',
-                              trendUp: true,
-                            ),
-                          ],
-
-                          const SizedBox(height: 28),
-
-                          // --- Section Header: Info Lokasi ---
-                          const _SectionHeader(label: 'INFO LOKASI'),
-                          const SizedBox(height: 12),
-
-                          // --- Info Cards ---
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _InfoCard(
-                                  icon: Icons.location_on_rounded,
-                                  iconColor: context.ewsColors.accent,
-                                  title: 'Pronojiwo',
-                                  subtitle: 'Lumajang, Jawa Timur',
+                            const SizedBox(height: 12),
+                            
+                            if (sensorAsync.hasValue)
+                              _buildSensorBentoGrid(context, sensorAsync.value!),
+                              
+                            const SizedBox(height: 28),
+                            const _SectionHeader(label: 'INFO LOKASI'),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _InfoCard(
+                                    icon: Icons.location_on_rounded,
+                                    iconColor: context.ewsColors.accent,
+                                    title: 'Pronojiwo',
+                                    subtitle: 'Lumajang, Jawa Timur',
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _InfoCard(
-                                  icon: Icons.terrain_rounded,
-                                  iconColor: const Color(0xFF8B7CF6),
-                                  title: '3.676 mdpl',
-                                  subtitle: 'Ketinggian Puncak',
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _InfoCard(
+                                    icon: Icons.terrain_rounded,
+                                    iconColor: const Color(0xFF8B7CF6),
+                                    title: '3.676 mdpl',
+                                    subtitle: 'Ketinggian Puncak',
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ]),
+                        ),
                       ),
-                    ),
-                  ),
+                  ],
+                ),
+              ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, AsyncValue<bool> onlineAsync) {
-    return AppBar(
+  Widget _buildSliverAppBar(BuildContext context, AsyncValue<bool> onlineAsync) {
+    return SliverAppBar(
+      expandedHeight: 80,
+      floating: true,
+      pinned: true,
+      backgroundColor: context.ewsColors.bgDark.withValues(alpha: 0.95),
+      elevation: 0,
       title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF00D4AA), Color(0xFF00A88A)],
@@ -164,7 +127,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             child: const Icon(
               Icons.volcano_rounded,
-              size: 18,
+              size: 16,
               color: Colors.white,
             ),
           ),
@@ -176,7 +139,7 @@ class HomeScreen extends ConsumerWidget {
               Text(
                 'EWS Semeru',
                 style: context.headingSmall.copyWith(
-                  fontSize: 15,
+                  fontSize: 16,
                   letterSpacing: -0.3,
                 ),
               ),
@@ -194,15 +157,87 @@ class HomeScreen extends ConsumerWidget {
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 14),
-          child: Center(
-            child: onlineAsync.when(
-              data: (isOnline) => _OnlineChip(isOnline: isOnline),
-              loading: () => const SizedBox.shrink(),
-              error: (e, s) => const _OnlineChip(isOnline: false),
-            ),
+          child: Consumer(
+            builder: (context, ref, _) {
+              final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: context.ewsColors.textSecondary,
+                ),
+                onPressed: () {
+                  ref.read(themeModeProvider.notifier).state = 
+                      isDark ? ThemeMode.light : ThemeMode.dark;
+                },
+              );
+            },
           ),
         ),
       ],
+    );
+  }
+
+  // Pendekatan Ponytail: Bento Grid (Clean & Professional)
+  Widget _buildSensorBentoGrid(BuildContext context, dynamic sensor) {
+    return SizedBox(
+      height: 260, // Diperbesar dari 220 ke 260 agar tidak overflow jika ukuran teks HP besar
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Kiri: Amplitudo (Tinggi / Tall)
+          Expanded(
+            flex: 5,
+            child: SensorTile(
+              label: 'Amplitudo Getaran',
+              value: sensor.amplitudo.toStringAsFixed(1),
+              unit: 'mm',
+              icon: Icons.vibration_rounded,
+              iconColor: const Color(0xFFEF4444), // Red 500
+              progressValue: (sensor.amplitudo / 10.0).clamp(0.0, 1.0),
+              trendLabel: '+0.3',
+              trendUp: true,
+              isVertical: true, // Ubah layout menjadi kolom
+              onTap: () => context.push('/chart'),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Kanan: Suhu & Gempa (Ditumpuk)
+          Expanded(
+            flex: 6,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SensorTile(
+                    label: 'Suhu Kawah',
+                    value: sensor.suhu.toStringAsFixed(1),
+                    unit: '°C',
+                    icon: Icons.thermostat_rounded,
+                    iconColor: const Color(0xFFF59E0B), // Amber 500
+                    progressValue: (sensor.suhu / 1000.0).clamp(0.0, 1.0),
+                    trendLabel: '-12°',
+                    trendUp: false,
+                    onTap: () => context.push('/chart'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: SensorTile(
+                    label: 'Gempa Vulkanik',
+                    value: '${sensor.gempaCount}',
+                    unit: 'x/hari',
+                    icon: Icons.timeline_rounded,
+                    iconColor: const Color(0xFF2563EB), // Blue 600
+                    progressValue: (sensor.gempaCount / 50.0).clamp(0.0, 1.0),
+                    trendLabel: '+5',
+                    trendUp: true,
+                    onTap: () => context.push('/chart'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -340,59 +375,6 @@ class _InfoCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Chip indikator online/offline.
-class _OnlineChip extends StatelessWidget {
-  final bool isOnline;
-
-  const _OnlineChip({required this.isOnline});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isOnline ? context.ewsColors.statusNormal : context.ewsColors.statusAwas;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.5),
-                  blurRadius: 4,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            isOnline ? 'Online' : 'Offline',
-            style: context.caption.copyWith(
-              fontSize: 11,
-              color: color,
-              letterSpacing: 0.3,
             ),
           ),
         ],

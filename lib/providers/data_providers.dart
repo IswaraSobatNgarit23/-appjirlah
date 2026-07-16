@@ -8,8 +8,15 @@ import '../models/evacuation_route.dart';
 import '../models/activity_log.dart';
 import '../services/data_service.dart';
 import '../services/dummy_data_service.dart';
+import '../services/pocketbase_data_service.dart';
 import '../services/location_service.dart';
 import '../repositories/ews_repository.dart';
+import 'package:flutter/material.dart';
+
+// =============================================================================
+// APP STATE PROVIDERS
+// =============================================================================
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
 
 // =============================================================================
 // SERVICE & REPOSITORY PROVIDERS
@@ -21,7 +28,7 @@ import '../repositories/ews_repository.dart';
 /// `DummyDataService()` menjadi implementasi DataService yang baru.
 /// Seluruh provider lain akan otomatis menggunakan data dari sumber baru.
 final dataServiceProvider = Provider<DataService>((ref) {
-  final service = DummyDataService();
+  final service = PocketbaseDataService(); // Menggunakan PB sekarang!
   ref.onDispose(() => service.dispose());
   return service;
 });

@@ -177,31 +177,31 @@ class AppTheme {
   );
 
   // ---------------------------------------------------------------------------
-  // DARK COLORS (Premium Cinematic Night Mode)
+  // DARK COLORS (Clean Corporate / Professional Slate)
   // ---------------------------------------------------------------------------
   static const EWSColors _darkColors = EWSColors(
-    bgDark: Color(0xFF080C14),
-    bgMid: Color(0xFF0F1923),
-    bgLight: Color(0xFF162030),
-    bgSurface: Color(0xFF1A2535),
-    bgCard: Color(0xFF1E2C3D),
-    accent: Color(0xFF00D4AA),
-    accentDim: Color(0xFF00A88A),
-    accentGlow: Color(0xFF00D4AA),
-    secondary: Color(0xFF4A9EFF),
-    textPrimary: Color(0xFFFFFFFF),
-    textSecondary: Color(0xFFE2E8F0),
-    textTertiary: Color(0xFFCBD5E1),
-    textMuted: Color(0xFF94A3B8),
-    divider: Color(0xFF243A52),
-    dividerLight: Color(0xFF334A66),
-    statusNormal: Color(0xFF00E676),
-    statusWaspada: Color(0xFFFFB74D),
-    statusSiaga: Color(0xFFFF7043),
-    statusAwas: Color(0xFFFF5252),
-    glassBackground: Color(0x0FFFFFFF), // white.withValues(alpha: 0.06)
-    glassBorder: Color(0x1EFFFFFF), // white.withValues(alpha: 0.12)
-    glassHighlight: Color(0x19FFFFFF), // white.withValues(alpha: 0.10)
+    bgDark: Color(0xFF0F172A), // Slate 900
+    bgMid: Color(0xFF1E293B), // Slate 800
+    bgLight: Color(0xFF334155), // Slate 700
+    bgSurface: Color(0xFF1E293B),
+    bgCard: Color(0xFF1E293B), // Same as surface for flat look
+    accent: Color(0xFF059669), // Emerald 600
+    accentDim: Color(0xFF047857), // Emerald 700
+    accentGlow: Color(0xFF10B981), // Emerald 500 (No neon glow)
+    secondary: Color(0xFF2563EB), // Blue 600
+    textPrimary: Color(0xFFF8FAFC), // Slate 50
+    textSecondary: Color(0xFFCBD5E1), // Slate 300
+    textTertiary: Color(0xFF94A3B8), // Slate 400
+    textMuted: Color(0xFF64748B), // Slate 500
+    divider: Color(0xFF334155),
+    dividerLight: Color(0xFF475569),
+    statusNormal: Color(0xFF10B981),
+    statusWaspada: Color(0xFFF59E0B),
+    statusSiaga: Color(0xFFEA580C),
+    statusAwas: Color(0xFFEF4444),
+    glassBackground: Color(0xFF1E293B), // Solid, no glass
+    glassBorder: Color(0xFF334155), // Clean thin border
+    glassHighlight: Color(0x00000000), // No highlight
     isLight: false,
   );
 
@@ -393,12 +393,9 @@ extension AppThemeContextExtension on BuildContext {
 
   /// Helpers
   LinearGradient get backgroundGradient => LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: ewsColors.isLight
-            ? [ewsColors.bgDark, ewsColors.bgDark] // Solid di light mode
-            : [ewsColors.bgDark, ewsColors.bgMid, ewsColors.bgLight],
-        stops: ewsColors.isLight ? [0.0, 1.0] : [0.0, 0.5, 1.0],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [ewsColors.bgDark, ewsColors.bgDark],
       );
 
   BoxDecoration glassDecoration({
@@ -407,50 +404,38 @@ extension AppThemeContextExtension on BuildContext {
     Color? borderColor,
   }) {
     return BoxDecoration(
-      color: backgroundColor ?? ewsColors.glassBackground,
+      color: backgroundColor ?? ewsColors.bgCard,
       borderRadius: BorderRadius.circular(borderRadius),
       border: Border.all(
         color: borderColor ?? ewsColors.glassBorder,
         width: 1,
       ),
-      boxShadow: ewsColors.isLight
-          ? [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ]
-          : null, // Dark mode tidak pakai shadow di tiap card
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.03),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        )
+      ],
     );
   }
 
   List<BoxShadow> get softShadow => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: ewsColors.isLight ? 0.1 : 0.4),
-          blurRadius: 16,
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 12,
           offset: const Offset(0, 4),
-          spreadRadius: 0,
         ),
       ];
 
   List<BoxShadow> glowShadow(Color color) {
-    return ewsColors.isLight
-        ? [] // No glow in light mode
-        : [
-            BoxShadow(
-              color: color.withValues(alpha: 0.5),
-              blurRadius: 32,
-              offset: const Offset(0, 8),
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: color.withValues(alpha: 0.3),
-              blurRadius: 64,
-              offset: const Offset(0, 4),
-              spreadRadius: -8,
-            ),
-          ];
+    return [
+      BoxShadow(
+        color: color.withValues(alpha: 0.15),
+        blurRadius: 16,
+        offset: const Offset(0, 4),
+      ),
+    ];
   }
 
   List<BoxShadow> get accentGlowShadow => ewsColors.isLight

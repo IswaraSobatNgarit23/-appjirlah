@@ -1,0 +1,72 @@
+[
+  {
+    "id": "pbc_sensor_data_id",
+    "name": "sensor_data",
+    "type": "base",
+    "system": false,
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "fields": [
+      {
+        "id": "pb_field_amplitudo",
+        "name": "amplitudo",
+        "type": "number",
+        "required": true,
+        "presentable": true
+      },
+      {
+        "id": "pb_field_suhu",
+        "name": "suhu",
+        "type": "number",
+        "required": true,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_gempa_count",
+        "name": "gempa_count",
+        "type": "number",
+        "required": true,
+        "presentable": false
+      }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_volcano_status_id",
+    "name": "volcano_status",
+    "type": "base",
+    "system": false,
+    "listRule": "",
+    "viewRule": "",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "fields": [
+      {
+        "id": "pb_field_level",
+        "name": "level",
+        "type": "number",
+        "required": true,
+        "presentable": true
+      },
+      {
+        "id": "pb_field_status_text",
+        "name": "status_text",
+        "type": "text",
+        "required": true,
+        "presentable": true
+      },
+      {
+        "id": "pb_field_message",
+        "name": "message",
+        "type": "text",
+        "required": true,
+        "presentable": false
+      }
+    ],
+    "indexes": []
+  }
+]
