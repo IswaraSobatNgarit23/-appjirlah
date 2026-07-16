@@ -80,7 +80,7 @@ def fetch_magma_data():
 def push_to_pocketbase(token, data):
     """Menyimpan data terbaru ke PocketBase"""
     headers = {
-        "Authorization": f"Admin {token}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     
