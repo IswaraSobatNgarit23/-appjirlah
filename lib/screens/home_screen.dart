@@ -7,6 +7,8 @@ import '../theme/app_theme.dart';
 import '../widgets/gradient_background.dart';
 import '../widgets/status_hero_card.dart';
 import '../widgets/error_state_view.dart';
+import '../widgets/visual_cctv_card.dart';
+import '../widgets/seismic_ews_dashboard.dart';
 
 /// Tab Beranda — Menampilkan seluruh data dari laporan MAGMA secara lengkap.
 class HomeScreen extends ConsumerWidget {
@@ -57,18 +59,30 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       _buildSummaryRow(context, status),
 
-                      // 3. PENGAMATAN KEGEMPAAN — total + detail per jenis
+                      // 3. PENGAMATAN KEGEMPAAN — Dashboard Seismik EWS
+                      if (status.kegempaanDetails.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        const _SectionHeader(label: 'DASHBOARD SEISMIK EWS'),
+                        const SizedBox(height: 12),
+                        SeismicEwsDashboard(status: status),
+                      ],
+
+                      // 3.5. TEKS PENGAMATAN KEGEMPAAN
                       if (status.kegempaan.isNotEmpty) ...[
                         const SizedBox(height: 24),
-                        const _SectionHeader(label: 'PENGAMATAN KEGEMPAAN'),
+                        const _SectionHeader(label: 'DETAIL KEGEMPAAN'),
                         const SizedBox(height: 12),
                         _KegempaanCard(status: status),
                       ],
 
-                      // 4. PENGAMATAN VISUAL
+                      // 4. PENGAMATAN VISUAL & CCTV
+                      const SizedBox(height: 24),
+                      const _SectionHeader(label: 'SITUASI TERKINI & CCTV'),
+                      const SizedBox(height: 12),
+                      VisualCctvCard(status: status),
+
+                      // 4.5. TEKS PENGAMATAN VISUAL
                       if (status.visual.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        const _SectionHeader(label: 'PENGAMATAN VISUAL'),
                         const SizedBox(height: 12),
                         _TextCard(
                           text: status.visual,

@@ -89,6 +89,8 @@ class PocketbaseDataService implements DataService {
           author: data['author']?.toString() ?? '',
           gempaTotal: (data['gempa_total'] as num?)?.toInt() ?? 0,
           laporanUrl: data['laporan_url']?.toString() ?? '',
+          imageUrl: data['image_url']?.toString() ?? '',
+          kegempaanDetails: data['kegempaan_details'] as Map<String, dynamic>? ?? const {},
           updatedAt: DateTime.tryParse(records.items.first.get<String>('created')) ?? DateTime.now(),
         );
         return _lastStatus!;
@@ -188,6 +190,8 @@ class PocketbaseDataService implements DataService {
           author: data['author']?.toString() ?? '',
           gempaTotal: (data['gempa_total'] as num?)?.toInt() ?? 0,
           laporanUrl: data['laporan_url']?.toString() ?? '',
+          imageUrl: data['image_url']?.toString() ?? '',
+          kegempaanDetails: data['kegempaan_details'] as Map<String, dynamic>? ?? const {},
           updatedAt: DateTime.tryParse(record.get<String>('created')) ?? DateTime.now(),
         );
       }).toList();

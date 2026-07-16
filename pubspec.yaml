@@ -18,7 +18,9 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
-  url_launcher: ^6.3.1
+  url_launcher: ^6.3.0
+  youtube_player_iframe: ^6.0.2
+  cached_network_image: ^3.4.1
   geolocator: ^14.0.3
   pocketbase: ^0.24.0+1
 

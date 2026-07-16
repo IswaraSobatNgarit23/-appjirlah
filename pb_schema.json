@@ -81,6 +81,20 @@
         "presentable": false
       },
       {
+        "id": "pb_field_image_url",
+        "name": "image_url",
+        "type": "url",
+        "required": false,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_kegempaan_details",
+        "name": "kegempaan_details",
+        "type": "json",
+        "required": false,
+        "presentable": false
+      },
+      {
         "id": "pb_field_vs_created",
         "name": "created",
         "type": "autodate",

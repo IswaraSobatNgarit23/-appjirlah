@@ -130,10 +130,17 @@ def fetch_magma_data():
             klimatologi = klimatologi_tag.find_next_sibling('p').text.strip()
                     
         # =====================================================================
-        # 3. Parsing Kegempaan — hitung total gempa SEMUA jenis dengan akurat
+        # 3. Parsing Kegempaan & Ekstraksi Detail Seismik (Regex)
         # =====================================================================
         kegempaan = ""
         gempa_total = 0
+        kegempaan_details = {
+            "letusan": {"count": 0, "amplitudo": ""},
+            "guguran": {"count": 0, "amplitudo": ""},
+            "tremor": {"count": 0, "amplitudo": ""},
+            "vulkanik": {"count": 0, "amplitudo": ""},
+            "lahar": {"count": 0, "amplitudo": ""}
+        }
         
         kegempaan_tag = dsoup.find(lambda tag: tag.name == "h6" and "Pengamatan Kegempaan" in tag.text)
         if kegempaan_tag:
@@ -141,13 +148,50 @@ def fetch_magma_data():
             p_tags = parent.find_all('p')
             kegempaan = "\n".join([p.text.strip() for p in p_tags])
             
-            # Regex fleksibel: tangkap "X kali gempa" di mana pun posisinya
             for p in p_tags:
                 text = p.text.strip()
-                # Pola: angka + "kali" (di awal baris atau setelah spasi)
+                # Hitung total semua jenis gempa
                 count_matches = re.findall(r'(\d+)\s+kali', text, re.IGNORECASE)
                 for match in count_matches:
                     gempa_total += int(match)
+                    
+                # Ekstrak Letusan
+                letusan_match = re.search(r'(\d+)\s+kali\s+gempa\s+Letusan.*?amplitudo\s+(\d+(?:-\d+)?)\s*mm', text, re.IGNORECASE)
+                if letusan_match:
+                    kegempaan_details["letusan"] = {"count": int(letusan_match.group(1)), "amplitudo": letusan_match.group(2)}
+                    
+                # Ekstrak Guguran
+                guguran_match = re.search(r'(\d+)\s+kali\s+gempa\s+Guguran.*?amplitudo\s+(\d+(?:-\d+)?)\s*mm', text, re.IGNORECASE)
+                if guguran_match:
+                    kegempaan_details["guguran"] = {"count": int(guguran_match.group(1)), "amplitudo": guguran_match.group(2)}
+                    
+                # Ekstrak Tremor
+                tremor_match = re.search(r'(?:(\d+)\s+kali\s+)?gempa\s+Tremor.*?amplitudo\s+(\d+(?:-\d+)?)\s*mm', text, re.IGNORECASE)
+                if tremor_match:
+                    kegempaan_details["tremor"] = {"count": int(tremor_match.group(1) or 1), "amplitudo": tremor_match.group(2)}
+                    
+                # Ekstrak Vulkanik
+                vulkanik_match = re.search(r'(\d+)\s+kali\s+gempa\s+Vulkanik.*?amplitudo\s+(\d+(?:-\d+)?)\s*mm', text, re.IGNORECASE)
+                if vulkanik_match:
+                    kegempaan_details["vulkanik"] = {"count": int(vulkanik_match.group(1)), "amplitudo": vulkanik_match.group(2)}
+                    
+                # Ekstrak Lahar / Banjir
+                lahar_match = re.search(r'(?:(\d+)\s+kali\s+)?gempa\s+(?:Lahar|Banjir|Getaran Banjir).*?amplitudo\s+(\d+(?:-\d+)?)\s*mm', text, re.IGNORECASE)
+                if lahar_match:
+                    kegempaan_details["lahar"] = {"count": int(lahar_match.group(1) or 1), "amplitudo": lahar_match.group(2)}
+
+        # =====================================================================
+        # 3.5. Parsing Image (Cari foto visual)
+        # =====================================================================
+        image_url = ""
+        img_tags = dsoup.find_all('img', class_='img-fluid')
+        for img in img_tags:
+            src = img.get('src', '')
+            if 'magma.esdm.go.id/img/' in src or '/images/' in src:
+                if 'logo' not in src.lower():
+                    image_url = src
+                    break
+
                     
         # =====================================================================
         # 4. Parsing Rekomendasi
@@ -194,7 +238,9 @@ def fetch_magma_data():
             "rekomendasi": rekomendasi,
             "author": author_text or "",
             "gempa_total": gempa_total,
-            "laporan_url": detail_url
+            "laporan_url": detail_url,
+            "image_url": image_url,
+            "kegempaan_details": kegempaan_details
         }
     except Exception as e:
         print(f"Error scraping: {e}")

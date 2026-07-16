@@ -23,6 +23,8 @@ class VolcanoStatus {
   final String author;
   final int _gempaTotal;
   final String laporanUrl;
+  final String imageUrl;
+  final Map<String, dynamic> kegempaanDetails;
   final DateTime updatedAt;
 
   const VolcanoStatus({
@@ -35,6 +37,8 @@ class VolcanoStatus {
     this.author = '',
     int gempaTotal = 0,
     this.laporanUrl = '',
+    this.imageUrl = '',
+    this.kegempaanDetails = const {},
     required this.updatedAt,
   }) : _gempaTotal = gempaTotal;
 
@@ -51,6 +55,20 @@ class VolcanoStatus {
     }
     return total;
   }
+
+  // Helper Methods EWS Seismik
+  int _getGempaCount(String type) => (kegempaanDetails[type]?['count'] as num?)?.toInt() ?? 0;
+  String _getGempaAmplitudo(String type) => (kegempaanDetails[type]?['amplitudo'] as String?) ?? '';
+
+  int get guguranCount => _getGempaCount('guguran');
+  int get letusanCount => _getGempaCount('letusan');
+  int get tremorCount => _getGempaCount('tremor');
+  int get laharCount => _getGempaCount('lahar');
+  int get vulkanikCount => _getGempaCount('vulkanik');
+
+  bool get hasHighGuguran => guguranCount >= 20;
+  bool get hasLahar => laharCount > 0;
+  bool get hasHarmonikTremor => tremorCount > 0;
 
   /// Label teks untuk ditampilkan di UI.
   String get levelLabel {
