@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 // =============================================================================
 // APP STATE PROVIDERS
 // =============================================================================
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
 
 // =============================================================================
 // SERVICE & REPOSITORY PROVIDERS

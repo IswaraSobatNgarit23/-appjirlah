@@ -839,7 +839,7 @@ class _EmergencyBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Segera menuju titik kumpul jika status SIAGA atau AWAS.',
+                  'Segera menuju titik kumpul jika status level 4 atau AWAS.',
                   style: context.bodyMedium.copyWith(
                     fontSize: 11,
                     height: 1.4,
