@@ -124,8 +124,16 @@ class PocketbaseDataService implements DataService {
         final data = record.data;
         final levelInt = (data['level'] as num?)?.toInt() ?? 1;
         final statusText = data['status_text']?.toString() ?? 'Normal';
-        final gempaTotal = (data['gempa_total'] as num?)?.toInt() ?? 0;
+        int gempaTotal = (data['gempa_total'] as num?)?.toInt() ?? 0;
+        final kegempaan = data['kegempaan']?.toString() ?? '';
         final author = data['author']?.toString() ?? '';
+        
+        if (gempaTotal == 0 && kegempaan.isNotEmpty) {
+          final regex = RegExp(r'(\d+)\s+kali', caseSensitive: false);
+          for (final match in regex.allMatches(kegempaan)) {
+            gempaTotal += int.tryParse(match.group(1) ?? '') ?? 0;
+          }
+        }
         
         String severity;
         if (levelInt >= 4) {

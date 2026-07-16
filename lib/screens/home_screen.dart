@@ -139,8 +139,10 @@ class HomeScreen extends ConsumerWidget {
 
   // Baris ringkasan: Total Gempa + Pelapor
   Widget _buildSummaryRow(BuildContext context, dynamic status) {
-    return Row(
-      children: [
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         // Total Gempa — card utama, besar dan menarik
         Expanded(
           flex: 5,
@@ -184,6 +186,7 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ],
+      ),
     );
   }
 
@@ -630,6 +633,7 @@ class _SummaryTile extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(
               children: [
