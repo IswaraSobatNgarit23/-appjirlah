@@ -1356,9 +1356,11 @@ class _ContactCard extends StatelessWidget {
           // Panggil button
           GestureDetector(
             onTap: () async {
-              final uri = Uri(scheme: 'tel', path: contact.phone);
-              if (await canLaunchUrl(uri)) {
+              final uri = Uri.parse('tel:${contact.phone}');
+              try {
                 await launchUrl(uri);
+              } catch (e) {
+                debugPrint('Could not launch phone dialer: $e');
               }
             },
             child: Container(
