@@ -11,10 +11,8 @@ enum StatusLevel {
 
 /// Model data status gunung api.
 ///
-/// Untuk integrasi database/API, cukup buat instance dari JSON response:
-/// ```dart
-/// final status = VolcanoStatus.fromJson(jsonData);
-/// ```
+/// Menyimpan seluruh data dari 1 laporan MAGMA:
+/// status, visual, klimatologi, kegempaan, rekomendasi, dan total gempa.
 class VolcanoStatus {
   final StatusLevel level;
   final String message;
@@ -23,6 +21,8 @@ class VolcanoStatus {
   final String kegempaan;
   final String rekomendasi;
   final String author;
+  final int gempaTotal;
+  final String laporanUrl;
   final DateTime updatedAt;
 
   const VolcanoStatus({
@@ -33,6 +33,8 @@ class VolcanoStatus {
     this.kegempaan = '',
     this.rekomendasi = '',
     this.author = '',
+    this.gempaTotal = 0,
+    this.laporanUrl = '',
     required this.updatedAt,
   });
 
@@ -47,6 +49,20 @@ class VolcanoStatus {
         return 'SIAGA';
       case StatusLevel.awas:
         return 'AWAS';
+    }
+  }
+
+  /// Deskripsi singkat level.
+  String get levelDescription {
+    switch (level) {
+      case StatusLevel.normal:
+        return 'Aktivitas vulkanik normal';
+      case StatusLevel.waspada:
+        return 'Peningkatan aktivitas vulkanik';
+      case StatusLevel.siaga:
+        return 'Menuju erupsi atau sudah erupsi';
+      case StatusLevel.awas:
+        return 'Segera evakuasi!';
     }
   }
 
@@ -106,13 +122,33 @@ class VolcanoStatus {
     }
   }
 
+  /// Format waktu update yang mudah dibaca.
+  String get formattedUpdateTime {
+    final months = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    final d = updatedAt;
+    final hour = d.hour.toString().padLeft(2, '0');
+    final minute = d.minute.toString().padLeft(2, '0');
+    return '${d.day} ${months[d.month]} ${d.year}, $hour:$minute WIB';
+  }
+
+  /// Parse list kegempaan menjadi daftar per jenis gempa.
+  /// Misal: ["18 kali gempa Letusan/Erupsi...", "1 kali gempa Guguran..."]
+  List<String> get kegempaanList {
+    if (kegempaan.isEmpty) return [];
+    return kegempaan
+        .split('\n')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
   // ---------------------------------------------------------------------------
   // INTEGRASI DATABASE / API
-  // Uncomment dan sesuaikan method di bawah saat menghubungkan ke backend.
   // ---------------------------------------------------------------------------
 
-  /// Membuat instance dari JSON response API.
-  /// Contoh JSON: {"level": "SIAGA", "message": "Jauhi radius 13 KM", "updated_at": "2026-06-16T21:00:00Z"}
   factory VolcanoStatus.fromJson(Map<String, dynamic> json) {
     final levelStr = json['level'] as String?;
     if (levelStr == null || levelStr.isEmpty) {
@@ -129,11 +165,12 @@ class VolcanoStatus {
       kegempaan: json['kegempaan'] as String? ?? '',
       rekomendasi: json['rekomendasi'] as String? ?? '',
       author: json['author'] as String? ?? '',
+      gempaTotal: (json['gempa_total'] as num?)?.toInt() ?? 0,
+      laporanUrl: json['laporan_url'] as String? ?? '',
       updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ?? DateTime.now(),
     );
   }
 
-  /// Konversi ke JSON untuk dikirim ke API.
   Map<String, dynamic> toJson() {
     return {
       'level': levelLabel,
@@ -143,6 +180,8 @@ class VolcanoStatus {
       'kegempaan': kegempaan,
       'rekomendasi': rekomendasi,
       'author': author,
+      'gempa_total': gempaTotal,
+      'laporan_url': laporanUrl,
       'updated_at': updatedAt.toIso8601String(),
     };
   }

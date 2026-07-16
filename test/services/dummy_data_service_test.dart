@@ -20,9 +20,7 @@ void main() {
     test('getSensorData returns valid sensor data', () async {
       final sensor = await service.getSensorData();
 
-      expect(sensor.amplitudo, greaterThan(0));
-      expect(sensor.suhu, greaterThan(0));
-      expect(sensor.gempaCount, greaterThanOrEqualTo(0));
+      expect(sensor.gempaTotal, greaterThanOrEqualTo(0));
       expect(sensor.updatedAt, isNotNull);
     });
 

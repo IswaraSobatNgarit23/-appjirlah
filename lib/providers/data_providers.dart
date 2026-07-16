@@ -22,18 +22,13 @@ final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
 // =============================================================================
 
 /// Provider utama untuk DataService.
-///
-/// Untuk mengganti sumber data (misal: dari API sungguhan), cukup ubah
-/// `DummyDataService()` menjadi implementasi DataService yang baru.
-/// Seluruh provider lain akan otomatis menggunakan data dari sumber baru.
 final dataServiceProvider = Provider<DataService>((ref) {
-  final service = PocketbaseDataService(); // Menggunakan PB sekarang!
+  final service = PocketbaseDataService();
   ref.onDispose(() => service.dispose());
   return service;
 });
 
 /// Repository layer antara provider dan DataService.
-/// Semua provider data harus mengambil dari sini, bukan langsung dari service.
 final repositoryProvider = Provider<EwsRepository>((ref) {
   final dataService = ref.watch(dataServiceProvider);
   return EwsRepository(dataService);
@@ -49,7 +44,7 @@ final volcanoStatusProvider = FutureProvider.autoDispose<VolcanoStatus>((ref) as
   return repository.getVolcanoStatus();
 });
 
-/// Data sensor terkini.
+/// Data sensor terkini (simplified — hanya gempa total).
 final sensorDataProvider = FutureProvider.autoDispose<SensorData>((ref) async {
   final repository = ref.watch(repositoryProvider);
   return repository.getSensorData();
@@ -82,13 +77,14 @@ final activityLogsProvider = FutureProvider.autoDispose<List<ActivityLog>>((ref)
   return repository.getActivityLogs();
 });
 
+/// Data historis untuk chart (beberapa record terakhir).
+final historicalDataProvider = FutureProvider.autoDispose<List<VolcanoStatus>>((ref) async {
+  final service = ref.watch(dataServiceProvider) as PocketbaseDataService;
+  return service.getHistoricalData(limit: 7);
+});
+
 // =============================================================================
-// STREAM PROVIDERS (Real-time data — skeleton)
-//
-// Saat ini stream dari DummyDataService mengembalikan null, sehingga
-// repository akan fallback ke single-emit dari Future.
-// Saat backend mendukung stream (MQTT/WebSocket/Firestore), cukup
-// implementasikan statusStream/sensorStream di DataService yang baru.
+// STREAM PROVIDERS (Real-time data)
 // =============================================================================
 
 /// Stream status gunung api secara real-time.

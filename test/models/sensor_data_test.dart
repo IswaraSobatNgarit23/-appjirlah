@@ -5,82 +5,34 @@ void main() {
   group('SensorData.fromJson', () {
     test('parses valid JSON correctly', () {
       final json = {
-        'amplitudo': 20.0,
-        'suhu': 78.5,
-        'gempa_count': 34,
+        'gempa_total': 34,
         'updated_at': '2026-06-16T21:00:00Z',
       };
 
       final sensor = SensorData.fromJson(json);
 
-      expect(sensor.amplitudo, 20.0);
-      expect(sensor.suhu, 78.5);
-      expect(sensor.gempaCount, 34);
+      expect(sensor.gempaTotal, 34);
       expect(sensor.updatedAt.year, 2026);
     });
 
-    test('handles integer values for amplitudo and suhu', () {
-      final json = {
-        'amplitudo': 20,
-        'suhu': 78,
-        'gempa_count': 10,
-      };
+    test('defaults gempa_total to 0 when absent', () {
+      final json = <String, dynamic>{};
 
       final sensor = SensorData.fromJson(json);
-
-      expect(sensor.amplitudo, 20.0);
-      expect(sensor.suhu, 78.0);
-    });
-
-    test('defaults gempa_count to 0 when absent', () {
-      final json = {
-        'amplitudo': 5.0,
-        'suhu': 50.0,
-      };
-
-      final sensor = SensorData.fromJson(json);
-      expect(sensor.gempaCount, 0);
-    });
-
-    test('throws FormatException when amplitudo is missing', () {
-      final json = {
-        'suhu': 78.5,
-        'gempa_count': 34,
-      };
-
-      expect(
-        () => SensorData.fromJson(json),
-        throwsA(isA<FormatException>()),
-      );
-    });
-
-    test('throws FormatException when suhu is missing', () {
-      final json = {
-        'amplitudo': 20.0,
-        'gempa_count': 34,
-      };
-
-      expect(
-        () => SensorData.fromJson(json),
-        throwsA(isA<FormatException>()),
-      );
+      expect(sensor.gempaTotal, 0);
     });
   });
 
   group('SensorData.toJson', () {
     test('exports to JSON correctly', () {
       final sensor = SensorData(
-        amplitudo: 15.5,
-        suhu: 100.0,
-        gempaCount: 12,
+        gempaTotal: 12,
         updatedAt: DateTime(2026, 6, 16, 21, 0),
       );
 
       final json = sensor.toJson();
 
-      expect(json['amplitudo'], 15.5);
-      expect(json['suhu'], 100.0);
-      expect(json['gempa_count'], 12);
+      expect(json['gempa_total'], 12);
       expect(json['updated_at'], isNotEmpty);
     });
   });
@@ -88,9 +40,7 @@ void main() {
   group('SensorData.formattedUpdateTime', () {
     test('formats time correctly', () {
       final sensor = SensorData(
-        amplitudo: 10.0,
-        suhu: 50.0,
-        gempaCount: 5,
+        gempaTotal: 5,
         updatedAt: DateTime(2026, 6, 16, 21, 30),
       );
 

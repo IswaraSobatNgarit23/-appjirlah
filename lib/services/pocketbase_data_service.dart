@@ -13,10 +13,8 @@ class PocketbaseDataService implements DataService {
   late final PocketBase pb;
   
   VolcanoStatus? _lastStatus;
-  SensorData? _lastSensor;
 
   final _statusController = StreamController<VolcanoStatus>.broadcast();
-  final _sensorController = StreamController<SensorData>.broadcast();
 
   PocketbaseDataService() {
     final url = dotenv.env['POCKETBASE_URL'] ?? 'https://db-ews.sagamuda.id';
@@ -27,7 +25,6 @@ class PocketbaseDataService implements DataService {
 
   void _initRealtime() {
     getVolcanoStatus().then((val) => _statusController.add(val));
-    getSensorData().then((val) => _sensorController.add(val));
 
     pb.collection('volcano_status').subscribe('*', (e) {
       if (e.record != null) {
@@ -46,28 +43,15 @@ class PocketbaseDataService implements DataService {
           kegempaan: data['kegempaan']?.toString() ?? '',
           rekomendasi: data['rekomendasi']?.toString() ?? '',
           author: data['author']?.toString() ?? '',
-          updatedAt: DateTime.tryParse(e.record!.updated) ?? DateTime.now(),
+          gempaTotal: (data['gempa_total'] as num?)?.toInt() ?? 0,
+          laporanUrl: data['laporan_url']?.toString() ?? '',
+          updatedAt: DateTime.tryParse(e.record!.get<String>('updated')) ?? DateTime.now(),
         );
         _statusController.add(_lastStatus!);
       }
-    }).catchError((err) {
+    }).catchError((dynamic err) {
       debugPrint('Subscribe error volcano_status: $err');
-    });
-
-    pb.collection('sensor_data').subscribe('*', (e) {
-      if (e.record != null) {
-        final data = e.record!.data;
-        _lastSensor = SensorData(
-          amplitudo: (data['amplitudo'] as num?)?.toDouble() ?? 0.0,
-          suhuMin: (data['suhu_min'] as num?)?.toDouble() ?? 0.0,
-          suhuMax: (data['suhu_max'] as num?)?.toDouble() ?? (data['suhu_min'] as num?)?.toDouble() ?? 0.0,
-          gempaCount: (data['gempa_count'] as num?)?.toInt() ?? 0,
-          updatedAt: DateTime.tryParse(e.record!.updated) ?? DateTime.now(),
-        );
-        _sensorController.add(_lastSensor!);
-      }
-    }).catchError((err) {
-      debugPrint('Subscribe error sensor_data: $err');
+      return () async {};
     });
   }
 
@@ -75,7 +59,7 @@ class PocketbaseDataService implements DataService {
   Stream<VolcanoStatus>? get statusStream => _statusController.stream;
 
   @override
-  Stream<SensorData>? get sensorStream => _sensorController.stream;
+  Stream<SensorData>? get sensorStream => null;
 
   @override
   Future<VolcanoStatus> getVolcanoStatus() async {
@@ -103,7 +87,9 @@ class PocketbaseDataService implements DataService {
           kegempaan: data['kegempaan']?.toString() ?? '',
           rekomendasi: data['rekomendasi']?.toString() ?? '',
           author: data['author']?.toString() ?? '',
-          updatedAt: DateTime.tryParse(records.items.first.created) ?? DateTime.now(),
+          gempaTotal: (data['gempa_total'] as num?)?.toInt() ?? 0,
+          laporanUrl: data['laporan_url']?.toString() ?? '',
+          updatedAt: DateTime.tryParse(records.items.first.get<String>('created')) ?? DateTime.now(),
         );
         return _lastStatus!;
       }
@@ -116,40 +102,91 @@ class PocketbaseDataService implements DataService {
 
   @override
   Future<SensorData> getSensorData() async {
-    try {
-      final records = await pb.collection('sensor_data').getList(
-        page: 1,
-        perPage: 1,
-        sort: '-created',
-      );
-
-      if (records.items.isNotEmpty) {
-        final data = records.items.first.data;
-        _lastSensor = SensorData(
-          amplitudo: (data['amplitudo'] as num?)?.toDouble() ?? 0.0,
-          suhuMin: (data['suhu_min'] as num?)?.toDouble() ?? 0.0,
-          suhuMax: (data['suhu_max'] as num?)?.toDouble() ?? (data['suhu_min'] as num?)?.toDouble() ?? 0.0,
-          gempaCount: (data['gempa_count'] as num?)?.toInt() ?? 0,
-          updatedAt: DateTime.tryParse(records.items.first.created) ?? DateTime.now(),
-        );
-        return _lastSensor!;
-      }
-    } catch (e) {
-      debugPrint('Error getSensorData: $e');
-    }
-    
-    return _lastSensor ?? SensorData(amplitudo: 0, suhuMin: 0, suhuMax: 0, gempaCount: 0, updatedAt: DateTime.now());
+    // SensorData sekarang diambil dari volcano_status (gempa_total)
+    final status = await getVolcanoStatus();
+    return SensorData(
+      gempaTotal: status.gempaTotal,
+      updatedAt: status.updatedAt,
+    );
   }
 
   @override
   Future<List<ActivityLog>> getActivityLogs() async {
-    return [
-      ActivityLog(
-        description: 'Terkoneksi ke PocketBase secara Realtime',
-        timestamp: DateTime.now(),
-        severity: 'info',
-      ),
-    ];
+    try {
+      // Ambil 30 record terakhir dari volcano_status sebagai log
+      final records = await pb.collection('volcano_status').getList(
+        page: 1,
+        perPage: 30,
+        sort: '-created',
+      );
+
+      return records.items.map((record) {
+        final data = record.data;
+        final levelInt = (data['level'] as num?)?.toInt() ?? 1;
+        final statusText = data['status_text']?.toString() ?? 'Normal';
+        final gempaTotal = (data['gempa_total'] as num?)?.toInt() ?? 0;
+        final author = data['author']?.toString() ?? '';
+        
+        String severity;
+        if (levelInt >= 4) {
+          severity = 'critical';
+        } else if (levelInt == 3) {
+          severity = 'high';
+        } else if (levelInt == 2) {
+          severity = 'medium';
+        } else {
+          severity = 'low';
+        }
+
+        final description = 'Level $statusText — $gempaTotal kejadian gempa tercatat'
+            '${author.isNotEmpty ? ' (Pelapor: $author)' : ''}';
+
+        return ActivityLog(
+          description: description,
+          timestamp: DateTime.tryParse(record.get<String>('created')) ?? DateTime.now(),
+          severity: severity,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error getActivityLogs: $e');
+      return [];
+    }
+  }
+
+  /// Ambil data historis untuk chart (gempa_total per record).
+  Future<List<VolcanoStatus>> getHistoricalData({int limit = 7}) async {
+    try {
+      final records = await pb.collection('volcano_status').getList(
+        page: 1,
+        perPage: limit,
+        sort: '-created',
+      );
+
+      return records.items.map((record) {
+        final data = record.data;
+        StatusLevel level = StatusLevel.normal;
+        final levelInt = data['level'] as int? ?? 1;
+        if (levelInt == 2) level = StatusLevel.waspada;
+        if (levelInt == 3) level = StatusLevel.siaga;
+        if (levelInt == 4) level = StatusLevel.awas;
+
+        return VolcanoStatus(
+          level: level,
+          message: data['message']?.toString() ?? '',
+          visual: data['visual']?.toString() ?? '',
+          klimatologi: data['klimatologi']?.toString() ?? '',
+          kegempaan: data['kegempaan']?.toString() ?? '',
+          rekomendasi: data['rekomendasi']?.toString() ?? '',
+          author: data['author']?.toString() ?? '',
+          gempaTotal: (data['gempa_total'] as num?)?.toInt() ?? 0,
+          laporanUrl: data['laporan_url']?.toString() ?? '',
+          updatedAt: DateTime.tryParse(record.get<String>('created')) ?? DateTime.now(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error getHistoricalData: $e');
+      return [];
+    }
   }
 
   @override
@@ -184,8 +221,6 @@ class PocketbaseDataService implements DataService {
   @override
   Future<void> dispose() async {
     pb.collection('volcano_status').unsubscribe('*');
-    pb.collection('sensor_data').unsubscribe('*');
     _statusController.close();
-    _sensorController.close();
   }
 }

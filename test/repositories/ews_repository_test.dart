@@ -24,7 +24,7 @@ void main() {
       final sensor = await repository.getSensorData();
 
       expect(sensor, isA<SensorData>());
-      expect(sensor.amplitudo, greaterThan(0));
+      expect(sensor.gempaTotal, greaterThanOrEqualTo(0));
     });
 
     test('getEvacuationRoutes delegates to DataService', () async {
@@ -64,7 +64,7 @@ void main() {
       final sensor = await stream.first;
 
       expect(sensor, isA<SensorData>());
-      expect(sensor.amplitudo, greaterThan(0));
+      expect(sensor.gempaTotal, greaterThanOrEqualTo(0));
     });
   });
 }

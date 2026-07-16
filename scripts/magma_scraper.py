@@ -12,6 +12,7 @@ PB_ADMIN_EMAIL = os.getenv("PB_ADMIN_EMAIL", "admin@email.com")
 PB_ADMIN_PASSWORD = os.getenv("PB_ADMIN_PASSWORD", "password_anda")
 
 MAGMA_URL = "https://magma.esdm.go.id/v1/gunung-api/laporan"
+SCRAPE_INTERVAL = 300  # 5 menit (dalam detik)
 
 def get_pb_token():
     auth_url = f"{POCKETBASE_URL}/api/collections/_superusers/auth-with-password"
@@ -19,13 +20,33 @@ def get_pb_token():
     print("Mencoba login ke PocketBase Admin...")
     response = requests.post(auth_url, json=payload)
     if response.status_code == 200:
-        return response.json()['token']
+        token = response.json()['token']
+        print("✅ Login berhasil!")
+        return token
+    print(f"❌ Login gagal: {response.status_code} {response.text}")
     return None
+
+def check_duplicate(token, laporan_url):
+    """Cek apakah laporan_url sudah ada di database."""
+    headers = {"Authorization": f"Bearer {token}"}
+    url = f"{POCKETBASE_URL}/api/collections/volcano_status/records"
+    params = {
+        "filter": f'laporan_url="{laporan_url}"',
+        "perPage": 1
+    }
+    try:
+        res = requests.get(url, headers=headers, params=params)
+        if res.status_code == 200:
+            data = res.json()
+            return data.get("totalItems", 0) > 0
+    except Exception as e:
+        print(f"Peringatan saat cek duplikat: {e}")
+    return False
 
 def fetch_magma_data():
     print(f"Mencari laporan terbaru Semeru di {MAGMA_URL} ...")
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
     
     try:
@@ -36,7 +57,7 @@ def fetch_magma_data():
         level_text = None
         author_text = None
         
-        # Cari laporan Semeru
+        # Cari laporan Semeru di timeline
         items = soup.find_all('div', class_='timeline-item')
         for item in items:
             title_p = item.find('p', class_='timeline-title')
@@ -45,12 +66,12 @@ def fetch_magma_data():
                 if detail_link:
                     detail_url = detail_link.get('href')
                     
-                    # Coba ambil badge status
+                    # Ambil badge status
                     badge = title_p.find('span', class_='badge')
                     if badge:
                         level_text = badge.text.strip()
                     
-                    # Coba ambil author
+                    # Ambil author
                     author_p = item.find('p', class_='timeline-author')
                     if author_p:
                         author_text = author_p.text.strip()
@@ -67,59 +88,53 @@ def fetch_magma_data():
         res_detail = requests.get(detail_url, headers=headers, timeout=15)
         dsoup = BeautifulSoup(res_detail.text, 'html.parser')
         
+        # =====================================================================
         # 1. Parsing Visual
+        # =====================================================================
         visual = ""
         visual_tag = dsoup.find(lambda tag: tag.name == "h6" and "Pengamatan Visual" in tag.text)
         if visual_tag and visual_tag.find_next_sibling('p'):
             visual = visual_tag.find_next_sibling('p').text.strip()
             
-        # 2. Parsing Klimatologi & Suhu
+        # =====================================================================
+        # 2. Parsing Klimatologi (teks lengkap saja, tanpa parsing suhu)
+        # =====================================================================
         klimatologi = ""
-        suhu_min, suhu_max = 0.0, 0.0
         klimatologi_tag = dsoup.find(lambda tag: tag.name == "h6" and "Klimatologi" in tag.text)
         if klimatologi_tag and klimatologi_tag.find_next_sibling('p'):
             klimatologi = klimatologi_tag.find_next_sibling('p').text.strip()
-            # Coba regex cari angka suhu (contoh: 20-26)
-            suhu_match = re.search(r'Suhu udara sekitar (\d+)(?:\s*-\s*(\d+))?', klimatologi)
-            if suhu_match:
-                suhu_min = float(suhu_match.group(1))
-                if suhu_match.group(2):
-                    suhu_max = float(suhu_match.group(2))
-                else:
-                    suhu_max = suhu_min
                     
-        # 3. Parsing Kegempaan & Hitung Gempa
+        # =====================================================================
+        # 3. Parsing Kegempaan — hitung total gempa SEMUA jenis dengan akurat
+        # =====================================================================
         kegempaan = ""
-        gempa_count = 0
-        amplitudo_max = 0.0
+        gempa_total = 0
         
         kegempaan_tag = dsoup.find(lambda tag: tag.name == "h6" and "Pengamatan Kegempaan" in tag.text)
         if kegempaan_tag:
-            # Kegempaan biasanya ada beberapa paragraf
             parent = kegempaan_tag.parent
             p_tags = parent.find_all('p')
             kegempaan = "\n".join([p.text.strip() for p in p_tags])
             
-            # Cari angka kali gempa
+            # Regex fleksibel: tangkap "X kali gempa" di mana pun posisinya
             for p in p_tags:
-                count_match = re.search(r'^(\d+)\s+kali', p.text.strip())
-                if count_match:
-                    gempa_count += int(count_match.group(1))
+                text = p.text.strip()
+                # Pola: angka + "kali" (di awal baris atau setelah spasi)
+                count_matches = re.findall(r'(\d+)\s+kali', text, re.IGNORECASE)
+                for match in count_matches:
+                    gempa_total += int(match)
                     
-                # Cari max amplitudo
-                amp_match = re.search(r'amplitudo(?:\s+\d+\s*-)?\s*(\d+)\s*mm', p.text.strip(), re.IGNORECASE)
-                if amp_match:
-                    amp = float(amp_match.group(1))
-                    if amp > amplitudo_max:
-                        amplitudo_max = amp
-                        
+        # =====================================================================
         # 4. Parsing Rekomendasi
+        # =====================================================================
         rekomendasi = ""
         rek_tag = dsoup.find(lambda tag: tag.name == "h6" and "Rekomendasi" in tag.text)
         if rek_tag and rek_tag.find_next_sibling('p'):
             rekomendasi = rek_tag.find_next_sibling('p').get_text(separator="\n").strip()
             
-        # Parse Level
+        # =====================================================================
+        # 5. Parse Level Status
+        # =====================================================================
         level_num = 1
         status_text = "Normal"
         if level_text:
@@ -136,25 +151,25 @@ def fetch_magma_data():
                 level_num = 4
                 status_text = "Awas"
                 
-        message = "Status aman." if level_num == 1 else ("Aktivitas meningkat, berhati-hati." if level_num == 2 else ("Siaga, jauhi area berbahaya." if level_num == 3 else "AWAS! Segera evakuasi!"))
+        message_map = {
+            1: "Status aman.",
+            2: "Aktivitas meningkat, berhati-hati.",
+            3: "Siaga, jauhi area berbahaya.",
+            4: "AWAS! Segera evakuasi!"
+        }
+        message = message_map.get(level_num, "Status aman.")
                 
         return {
-            "sensor": {
-                "amplitudo": amplitudo_max,
-                "suhu_min": suhu_min,
-                "suhu_max": suhu_max,
-                "gempa_count": gempa_count
-            },
-            "status": {
-                "level": level_num,
-                "status_text": status_text,
-                "message": message,
-                "visual": visual,
-                "klimatologi": klimatologi,
-                "kegempaan": kegempaan,
-                "rekomendasi": rekomendasi,
-                "author": author_text or ""
-            }
+            "level": level_num,
+            "status_text": status_text,
+            "message": message,
+            "visual": visual,
+            "klimatologi": klimatologi,
+            "kegempaan": kegempaan,
+            "rekomendasi": rekomendasi,
+            "author": author_text or "",
+            "gempa_total": gempa_total,
+            "laporan_url": detail_url
         }
     except Exception as e:
         print(f"Error scraping: {e}")
@@ -166,42 +181,41 @@ def push_to_pocketbase(token, data):
         "Content-Type": "application/json"
     }
     
-    sensor_url = f"{POCKETBASE_URL}/api/collections/sensor_data/records"
-    print(f"Menyimpan Sensor Data: {data['sensor']}")
-    res_sensor = requests.post(sensor_url, json=data['sensor'], headers=headers)
-    if res_sensor.status_code == 200:
-        print("✅ Sensor data berhasil disimpan!")
-    else:
-        print(f"❌ Gagal simpan sensor: {res_sensor.text}")
-        
     status_url = f"{POCKETBASE_URL}/api/collections/volcano_status/records"
-    print(f"Menyimpan Status Gunung: {data['status']}")
-    res_status = requests.post(status_url, json=data['status'], headers=headers)
-    if res_status.status_code == 200:
-        print("✅ Status gunung berhasil disimpan!")
+    print(f"Menyimpan data laporan (Gempa Total: {data['gempa_total']}, Level: {data['status_text']})")
+    res = requests.post(status_url, json=data, headers=headers)
+    if res.status_code == 200:
+        print("✅ Data berhasil disimpan ke volcano_status!")
     else:
-        print(f"❌ Gagal simpan status: {res_status.text}")
+        print(f"❌ Gagal simpan: {res.status_code} {res.text}")
 
 def main():
     print("=== Memulai Script EWS Semeru Scraper ===")
+    print(f"Interval: {SCRAPE_INTERVAL} detik ({SCRAPE_INTERVAL // 60} menit)")
+    print(f"PocketBase: {POCKETBASE_URL}")
     
-    # Jalankan terus menerus setiap 15 menit (900 detik)
     while True:
         try:
             token = get_pb_token()
             if not token:
-                print("Gagal autentikasi PocketBase. Coba lagi 15 menit ke depan.")
+                print("Gagal autentikasi PocketBase. Coba lagi nanti.")
             else:
                 data = fetch_magma_data()
                 if data:
-                    push_to_pocketbase(token, data)
-                    print("Data berhasil diperbarui!")
+                    # Cek duplikat berdasarkan laporan_url
+                    if data.get("laporan_url") and check_duplicate(token, data["laporan_url"]):
+                        print("⏭️ Laporan sudah ada di database, skip (tidak duplikat).")
+                    else:
+                        push_to_pocketbase(token, data)
+                        print("🎉 Data baru berhasil diperbarui!")
+                else:
+                    print("⚠️ Tidak mendapat data dari MAGMA.")
                 
         except Exception as e:
             print(f"Error saat menjalankan scraper: {e}")
             
-        print("Menunggu 15 menit untuk update selanjutnya...\n")
-        time.sleep(900)
+        print(f"Menunggu {SCRAPE_INTERVAL // 60} menit untuk pengecekan selanjutnya...\n")
+        time.sleep(SCRAPE_INTERVAL)
 
 if __name__ == "__main__":
     main()

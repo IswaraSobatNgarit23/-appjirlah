@@ -26,9 +26,7 @@ class DummyDataService implements DataService {
   Future<SensorData> getSensorData() async {
     await Future.delayed(const Duration(milliseconds: 200));
     return SensorData(
-      amplitudo: 20.0,
-      suhu: 78.5,
-      gempaCount: 34,
+      gempaTotal: 34,
       updatedAt: DateTime(2026, 6, 16, 21, 0),
     );
   }

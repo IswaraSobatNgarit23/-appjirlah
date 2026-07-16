@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import '../models/volcano_status.dart';
 import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
@@ -11,13 +12,14 @@ import '../widgets/log_item_card.dart';
 import '../widgets/error_state_view.dart';
 import '../widgets/empty_state_view.dart';
 
-/// Tab Log Riwayat — Professional Edition dengan fl_chart.
+/// Tab Log Riwayat — menampilkan data historis REAL dari PocketBase.
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final logsAsync = ref.watch(activityLogsProvider);
+    final historyAsync = ref.watch(historicalDataProvider);
 
     return GradientBackground(
       child: Scaffold(
@@ -55,7 +57,7 @@ class HistoryScreen extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    '7 Hari Terakhir',
+                    'Data Laporan MAGMA',
                     style: context.caption.copyWith(
                       fontSize: 10,
                       letterSpacing: 0.5,
@@ -72,7 +74,10 @@ class HistoryScreen extends ConsumerWidget {
           ),
           error: (error, _) => ErrorStateView(
             error: error,
-            onRetry: () => ref.invalidate(activityLogsProvider),
+            onRetry: () {
+              ref.invalidate(activityLogsProvider);
+              ref.invalidate(historicalDataProvider);
+            },
           ),
           data: (logs) {
             if (logs.isEmpty) {
@@ -86,6 +91,7 @@ class HistoryScreen extends ConsumerWidget {
             return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(activityLogsProvider);
+              ref.invalidate(historicalDataProvider);
             },
             color: context.ewsColors.accent,
             backgroundColor: context.ewsColors.bgCard,
@@ -95,8 +101,16 @@ class HistoryScreen extends ConsumerWidget {
                 // --- Chart Section ---
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: _VibrasiChartCard(
-                    onTap: () => context.pushNamed('chartDetail'),
+                  child: historyAsync.when(
+                    data: (history) => _GempaChartCard(
+                      data: history,
+                      onTap: () => context.pushNamed('chartDetail'),
+                    ),
+                    loading: () => const SizedBox(
+                      height: 180,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (_, __) => const SizedBox.shrink(),
                   ),
                 ),
 
@@ -105,7 +119,11 @@ class HistoryScreen extends ConsumerWidget {
                 // --- Summary Stats ---
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: _SummaryStatsRow(),
+                  child: historyAsync.when(
+                    data: (history) => _SummaryStatsRow(data: history),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
                 ),
 
                 // --- Header Log ---
@@ -127,12 +145,12 @@ class HistoryScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Text('LOG KEJADIAN', style: context.label),
+                      Text('LOG LAPORAN', style: context.label),
                       const Spacer(),
                       Padding(
                         padding: const EdgeInsets.only(right: 16),
                         child: Text(
-                          '${logs.length} kejadian',
+                          '${logs.length} laporan',
                           style: context.caption.copyWith(
                             fontSize: 10,
                             color: context.ewsColors.textMuted,
@@ -165,32 +183,32 @@ class HistoryScreen extends ConsumerWidget {
   }
 }
 
-/// Chart getaran menggunakan fl_chart — bisa di-tap untuk detail.
-class _VibrasiChartCard extends StatefulWidget {
+/// Chart gempa total menggunakan fl_chart — data REAL dari PocketBase.
+class _GempaChartCard extends StatefulWidget {
+  final List<VolcanoStatus> data;
   final VoidCallback onTap;
 
-  const _VibrasiChartCard({required this.onTap});
+  const _GempaChartCard({required this.data, required this.onTap});
 
   @override
-  State<_VibrasiChartCard> createState() => _VibrasiChartCardState();
+  State<_GempaChartCard> createState() => _GempaChartCardState();
 }
 
-class _VibrasiChartCardState extends State<_VibrasiChartCard> {
+class _GempaChartCardState extends State<_GempaChartCard> {
   int? _touchedIndex;
-
-  // Data simulasi getaran 7 hari terakhir
-  static const _dataPoints = [
-    (day: 'Sen', value: 2.1),
-    (day: 'Sel', value: 3.4),
-    (day: 'Rab', value: 1.8),
-    (day: 'Kam', value: 5.7),
-    (day: 'Jum', value: 4.2),
-    (day: 'Sab', value: 2.9),
-    (day: 'Min', value: 3.6),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    // Data diurutkan dari terlama ke terbaru untuk chart
+    final chartData = widget.data.reversed.toList();
+    
+    if (chartData.isEmpty) return const SizedBox.shrink();
+
+    final maxGempa = chartData
+        .map((e) => e.gempaTotal.toDouble())
+        .reduce((a, b) => a > b ? a : b);
+    final chartMaxY = (maxGempa * 1.3).clamp(10.0, double.infinity);
+
     return GestureDetector(
       onTap: widget.onTap,
       child: GlassCard(
@@ -205,7 +223,7 @@ class _VibrasiChartCardState extends State<_VibrasiChartCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Amplitudo Getaran',
+                      'Total Gempa per Laporan',
                       style: context.bodyLarge.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -213,7 +231,7 @@ class _VibrasiChartCardState extends State<_VibrasiChartCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '7 hari terakhir • mm',
+                      '${chartData.length} laporan terakhir',
                       style: context.caption.copyWith(fontSize: 10),
                     ),
                   ],
@@ -253,13 +271,13 @@ class _VibrasiChartCardState extends State<_VibrasiChartCard> {
 
             const SizedBox(height: 16),
 
-            // fl_chart BarChart
+            // fl_chart BarChart — data REAL
             SizedBox(
               height: 120,
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  maxY: 8,
+                  maxY: chartMaxY,
                   minY: 0,
                   barTouchData: BarTouchData(
                     enabled: true,
@@ -280,11 +298,12 @@ class _VibrasiChartCardState extends State<_VibrasiChartCard> {
                           context.ewsColors.bgCard.withValues(alpha: 0.95),
                       tooltipRoundedRadius: 8,
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        final item = chartData[groupIndex];
                         return BarTooltipItem(
-                          '${rod.toY.toStringAsFixed(1)} mm',
+                          '${item.gempaTotal} gempa\n${item.levelLabel}',
                           context.caption.copyWith(
                             color: context.ewsColors.accent,
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w700,
                           ),
                         );
@@ -298,15 +317,16 @@ class _VibrasiChartCardState extends State<_VibrasiChartCard> {
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
-                          if (index < 0 || index >= _dataPoints.length) {
+                          if (index < 0 || index >= chartData.length) {
                             return const SizedBox.shrink();
                           }
+                          final date = chartData[index].updatedAt;
                           return Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                              _dataPoints[index].day,
+                              '${date.day}/${date.month}',
                               style: context.caption.copyWith(
-                                fontSize: 9,
+                                fontSize: 8,
                                 color: _touchedIndex == index
                                     ? context.ewsColors.accent
                                     : context.ewsColors.textMuted,
@@ -322,7 +342,9 @@ class _VibrasiChartCardState extends State<_VibrasiChartCard> {
                         showTitles: true,
                         reservedSize: 28,
                         getTitlesWidget: (value, meta) {
-                          if (value % 2 != 0) return const SizedBox.shrink();
+                          if (value % (chartMaxY / 4).ceil() != 0) {
+                            return const SizedBox.shrink();
+                          }
                           return Text(
                             value.toInt().toString(),
                             style: context.caption.copyWith(
@@ -341,22 +363,22 @@ class _VibrasiChartCardState extends State<_VibrasiChartCard> {
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    horizontalInterval: 2,
+                    horizontalInterval: (chartMaxY / 4).ceilToDouble(),
                     getDrawingHorizontalLine: (_) => FlLine(
                       color: Colors.white.withValues(alpha: 0.05),
                       strokeWidth: 1,
                     ),
                   ),
                   borderData: FlBorderData(show: false),
-                  barGroups: List.generate(_dataPoints.length, (index) {
+                  barGroups: List.generate(chartData.length, (index) {
                     final isSelected = _touchedIndex == index;
-                    final point = _dataPoints[index];
+                    final item = chartData[index];
                     return BarChartGroupData(
                       x: index,
                       barRods: [
                         BarChartRodData(
-                          toY: point.value,
-                          width: 18,
+                          toY: item.gempaTotal.toDouble(),
+                          width: chartData.length <= 3 ? 30 : 18,
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(5),
                             topRight: Radius.circular(5),
@@ -390,16 +412,25 @@ class _VibrasiChartCardState extends State<_VibrasiChartCard> {
   }
 }
 
-/// Baris statistik ringkasan.
+/// Baris statistik ringkasan — data REAL.
 class _SummaryStatsRow extends StatelessWidget {
-  const _SummaryStatsRow();
+  final List<VolcanoStatus> data;
+
+  const _SummaryStatsRow({required this.data});
 
   @override
   Widget build(BuildContext context) {
+    if (data.isEmpty) return const SizedBox.shrink();
+
+    final gempaCounts = data.map((e) => e.gempaTotal).toList();
+    final avg = gempaCounts.reduce((a, b) => a + b) / gempaCounts.length;
+    final max = gempaCounts.reduce((a, b) => a > b ? a : b);
+    final min = gempaCounts.reduce((a, b) => a < b ? a : b);
+
     final stats = [
-      (label: 'Rata-rata', value: '3.4', unit: 'mm', color: context.ewsColors.accent),
-      (label: 'Tertinggi', value: '5.7', unit: 'mm', color: const Color(0xFFFF6B6B)),
-      (label: 'Terendah', value: '1.8', unit: 'mm', color: context.ewsColors.statusNormal),
+      (label: 'Rata-rata', value: avg.toStringAsFixed(0), unit: 'gempa', color: context.ewsColors.accent),
+      (label: 'Tertinggi', value: '$max', unit: 'gempa', color: const Color(0xFFFF6B6B)),
+      (label: 'Terendah', value: '$min', unit: 'gempa', color: context.ewsColors.statusNormal),
     ];
 
     return Row(
