@@ -199,21 +199,70 @@ class PocketbaseDataService implements DataService {
 
   @override
   Future<EvacuationRoute> getEvacuationRoute() async {
-    return EvacuationRoute(
-      id: 'dummy',
-      destination: 'Balai Desa Pronojiwo',
-      distance: '13.5 KM',
-      estimate: '± 45 menit',
-      latitude: -8.2131,
-      longitude: 112.9806,
-      description: 'Menuju Balai Desa Pronojiwo yang aman.',
-      emergencyContacts: [],
-    );
+    final routes = await getEvacuationRoutes();
+    return routes.first;
   }
 
   @override
   Future<List<EvacuationRoute>> getEvacuationRoutes() async {
-    return [await getEvacuationRoute()];
+    return [
+      const EvacuationRoute(
+        id: 'r1',
+        destination: 'SMPN 2 Pronojiwo',
+        distance: '5–6 KM',
+        estimate: '15–20 menit',
+        latitude: -8.2323,
+        longitude: 112.9231,
+        description: 'Sektor Barat Daya - Titik Kumpul Utama Kecamatan Pronojiwo.',
+        locationType: LocationType.sekolah,
+        capacity: 500,
+        emergencyContacts: [
+          EmergencyContact(name: 'BPBD Lumajang', phone: '0334-882329'),
+        ],
+      ),
+      const EvacuationRoute(
+        id: 'r2',
+        destination: 'SDN 4 Supiturang',
+        distance: '3–4 KM',
+        estimate: '10–12 menit',
+        latitude: -8.2305,
+        longitude: 112.9150,
+        description: 'Sektor Selatan - Titik Kumpul Darurat Desa Supiturang.',
+        locationType: LocationType.sekolah,
+        capacity: 300,
+        emergencyContacts: [
+          EmergencyContact(name: 'Polsek Pronojiwo', phone: '0812-xxxx-xxxx'),
+        ],
+      ),
+      const EvacuationRoute(
+        id: 'r3',
+        destination: 'Balai Desa Sumbermujur',
+        distance: '9–11 KM',
+        estimate: '25–30 menit',
+        latitude: -8.1724,
+        longitude: 113.0489,
+        description: 'Sektor Tenggara - Posko Utama Evakuasi Skala Besar.',
+        locationType: LocationType.balaiDesa,
+        capacity: 1500,
+        emergencyContacts: [
+          EmergencyContact(name: 'Posko Sumbermujur', phone: '0852-xxxx-xxxx'),
+        ],
+      ),
+      const EvacuationRoute(
+        id: 'r4',
+        destination: 'Resort Ranu Pani TNBTS',
+        distance: '10.5 KM',
+        estimate: '3–4 jam (jalan kaki)',
+        latitude: -8.0163,
+        longitude: 112.9142,
+        description: 'Sektor Utara - Jalur Evakuasi Khusus Pendaki.',
+        locationType: LocationType.posko,
+        capacity: 200,
+        emergencyContacts: [
+          EmergencyContact(name: 'Resort TNBTS Ranu Pani', phone: '0341-xxxxxxx'),
+        ],
+      ),
+    ];
   }
 
   @override
