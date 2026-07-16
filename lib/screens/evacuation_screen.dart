@@ -517,10 +517,10 @@ class _MapSection extends ConsumerWidget {
                   backgroundColor: context.ewsColors.bgDark,
                 ),
                 children: [
-                  // Dark tile layer (CartoDB Dark Matter)
+                  // Light tile layer (CartoDB Light)
                   TileLayer(
                     urlTemplate:
-                        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+                        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
                     subdomains: const ['a', 'b', 'c', 'd'],
                     userAgentPackageName: 'com.ews.semeru',
                     maxZoom: 20,
@@ -1406,10 +1406,16 @@ class _NavigationButton extends StatelessWidget {
       '&route=-8.2150,112.9350;${route.latitude},${route.longitude}',
     );
 
-    if (await canLaunchUrl(googleMapsUrl)) {
-      await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
-    } else if (await canLaunchUrl(osmUrl)) {
-      await launchUrl(osmUrl, mode: LaunchMode.externalApplication);
+    final success = await launchUrl(
+      googleMapsUrl, 
+      mode: LaunchMode.externalApplication,
+    );
+    
+    if (!success) {
+      await launchUrl(
+        osmUrl, 
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
 
