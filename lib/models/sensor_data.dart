@@ -8,8 +8,11 @@ class SensorData {
   /// Amplitudo getaran dalam milimeter (mm).
   final double amplitudo;
 
-  /// Suhu kawah dalam derajat Celcius (°C).
-  final double suhu;
+  /// Suhu kawah minimum dalam derajat Celcius (°C).
+  final double suhuMin;
+  
+  /// Suhu kawah maksimum dalam derajat Celcius (°C).
+  final double suhuMax;
 
   /// Jumlah gempa vulkanik per hari.
   final int gempaCount;
@@ -19,7 +22,8 @@ class SensorData {
 
   const SensorData({
     required this.amplitudo,
-    required this.suhu,
+    required this.suhuMin,
+    required this.suhuMax,
     required this.gempaCount,
     required this.updatedAt,
   });
@@ -48,14 +52,15 @@ class SensorData {
         'Key "amplitudo" wajib ada dalam JSON SensorData. Data: $json',
       );
     }
-    if (!json.containsKey('suhu')) {
+    if (!json.containsKey('suhu_min')) {
       throw FormatException(
-        'Key "suhu" wajib ada dalam JSON SensorData. Data: $json',
+        'Key "suhu_min" wajib ada dalam JSON SensorData. Data: $json',
       );
     }
     return SensorData(
       amplitudo: (json['amplitudo'] as num).toDouble(),
-      suhu: (json['suhu'] as num).toDouble(),
+      suhuMin: (json['suhu_min'] as num).toDouble(),
+      suhuMax: (json['suhu_max'] as num?)?.toDouble() ?? (json['suhu_min'] as num).toDouble(),
       gempaCount: (json['gempa_count'] as int?) ?? 0,
       updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ?? DateTime.now(),
     );
@@ -64,7 +69,8 @@ class SensorData {
   Map<String, dynamic> toJson() {
     return {
       'amplitudo': amplitudo,
-      'suhu': suhu,
+      'suhu_min': suhuMin,
+      'suhu_max': suhuMax,
       'gempa_count': gempaCount,
       'updated_at': updatedAt.toIso8601String(),
     };

@@ -61,6 +61,69 @@ class HomeScreen extends ConsumerWidget {
                             const SizedBox(height: 28),
                             _SectionHeader(
                               label: 'DATA SENSOR',
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../providers/data_providers.dart';
+import '../theme/app_theme.dart';
+import '../widgets/gradient_background.dart';
+import '../widgets/status_hero_card.dart';
+import '../widgets/sensor_tile.dart';
+import '../widgets/error_state_view.dart';
+
+/// Tab Beranda — Professional Edition.
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusAsync = ref.watch(volcanoStatusProvider);
+    final sensorAsync = ref.watch(sensorDataProvider);
+    final onlineAsync = ref.watch(systemOnlineProvider);
+
+    final isLoading = statusAsync.isLoading || sensorAsync.isLoading;
+    final error = statusAsync.error ?? sensorAsync.error;
+
+    return GradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: error != null
+            ? ErrorStateView(
+                error: error,
+                onRetry: () {
+                  ref.invalidate(volcanoStatusProvider);
+                  ref.invalidate(sensorDataProvider);
+                  ref.invalidate(systemOnlineProvider);
+                },
+              )
+            : RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(volcanoStatusProvider);
+                  ref.invalidate(sensorDataProvider);
+                  ref.invalidate(systemOnlineProvider);
+                },
+                color: context.ewsColors.accent,
+                backgroundColor: context.ewsColors.bgCard,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    _buildSliverAppBar(context, onlineAsync),
+                    if (isLoading)
+                      SliverFillRemaining(
+                        child: _buildLoadingState(context),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            if (statusAsync.hasValue)
+                              StatusHeroCard(status: statusAsync.value!),
+                            
+                            const SizedBox(height: 28),
+                            _SectionHeader(
+                              label: 'DATA SENSOR',
                               subtitle: sensorAsync.hasValue
                                   ? 'Diperbarui ${sensorAsync.value!.formattedUpdateTime}'
                                   : null,
@@ -69,6 +132,28 @@ class HomeScreen extends ConsumerWidget {
                             
                             if (sensorAsync.hasValue)
                               _buildSensorBentoGrid(context, sensorAsync.value!),
+                              
+                            if (statusAsync.hasValue && statusAsync.value!.rekomendasi.isNotEmpty) ...[
+                              const SizedBox(height: 28),
+                              const _SectionHeader(label: 'REKOMENDASI PVMBG'),
+                              const SizedBox(height: 12),
+                              _TextCard(
+                                text: statusAsync.value!.rekomendasi,
+                                icon: Icons.security_rounded,
+                                iconColor: const Color(0xFFEF4444),
+                              ),
+                            ],
+
+                            if (statusAsync.hasValue && statusAsync.value!.visual.isNotEmpty) ...[
+                              const SizedBox(height: 28),
+                              const _SectionHeader(label: 'PENGAMATAN VISUAL'),
+                              const SizedBox(height: 12),
+                              _TextCard(
+                                text: statusAsync.value!.visual,
+                                icon: Icons.visibility_rounded,
+                                iconColor: const Color(0xFF3B82F6),
+                              ),
+                            ],
                               
                             const SizedBox(height: 28),
                             const _SectionHeader(label: 'INFO LOKASI'),
@@ -375,6 +460,56 @@ class _InfoCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Card untuk menampilkan teks panjang seperti visual dan rekomendasi.
+class _TextCard extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final Color iconColor;
+
+  const _TextCard({
+    required this.text,
+    required this.icon,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.ewsColors.glassBackground,
+        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        border: Border.all(color: context.ewsColors.glassBorder, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 2),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: context.bodyMedium.copyWith(
+                height: 1.5,
+                color: context.ewsColors.textSecondary,
+              ),
             ),
           ),
         ],

@@ -18,11 +18,21 @@ enum StatusLevel {
 class VolcanoStatus {
   final StatusLevel level;
   final String message;
+  final String visual;
+  final String klimatologi;
+  final String kegempaan;
+  final String rekomendasi;
+  final String author;
   final DateTime updatedAt;
 
   const VolcanoStatus({
     required this.level,
     required this.message,
+    this.visual = '',
+    this.klimatologi = '',
+    this.kegempaan = '',
+    this.rekomendasi = '',
+    this.author = '',
     required this.updatedAt,
   });
 
@@ -114,6 +124,11 @@ class VolcanoStatus {
     return VolcanoStatus(
       level: _parseLevelFromString(levelStr),
       message: json['message'] as String? ?? '',
+      visual: json['visual'] as String? ?? '',
+      klimatologi: json['klimatologi'] as String? ?? '',
+      kegempaan: json['kegempaan'] as String? ?? '',
+      rekomendasi: json['rekomendasi'] as String? ?? '',
+      author: json['author'] as String? ?? '',
       updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ?? DateTime.now(),
     );
   }
@@ -123,6 +138,11 @@ class VolcanoStatus {
     return {
       'level': levelLabel,
       'message': message,
+      'visual': visual,
+      'klimatologi': klimatologi,
+      'kegempaan': kegempaan,
+      'rekomendasi': rekomendasi,
+      'author': author,
       'updated_at': updatedAt.toIso8601String(),
     };
   }

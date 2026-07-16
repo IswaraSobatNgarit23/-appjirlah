@@ -18,8 +18,15 @@
         "presentable": true
       },
       {
-        "id": "pb_field_suhu",
-        "name": "suhu",
+        "id": "pb_field_suhu_min",
+        "name": "suhu_min",
+        "type": "number",
+        "required": true,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_suhu_max",
+        "name": "suhu_max",
         "type": "number",
         "required": true,
         "presentable": false
@@ -29,6 +36,22 @@
         "name": "gempa_count",
         "type": "number",
         "required": true,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_sd_created",
+        "name": "created",
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_sd_updated",
+        "name": "updated",
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": true,
         "presentable": false
       }
     ],
@@ -64,6 +87,57 @@
         "name": "message",
         "type": "text",
         "required": true,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_visual",
+        "name": "visual",
+        "type": "text",
+        "required": false,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_klimatologi",
+        "name": "klimatologi",
+        "type": "text",
+        "required": false,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_kegempaan",
+        "name": "kegempaan",
+        "type": "text",
+        "required": false,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_rekomendasi",
+        "name": "rekomendasi",
+        "type": "text",
+        "required": false,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_author",
+        "name": "author",
+        "type": "text",
+        "required": false,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_vs_created",
+        "name": "created",
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false
+      },
+      {
+        "id": "pb_field_vs_updated",
+        "name": "updated",
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": true,
         "presentable": false
       }
     ],

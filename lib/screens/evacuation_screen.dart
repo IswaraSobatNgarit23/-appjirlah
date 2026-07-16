@@ -291,7 +291,7 @@ class _LocationSelector extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: routes.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (context, _) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final route = routes[index];
               final isSelected = index == selectedIndex;
