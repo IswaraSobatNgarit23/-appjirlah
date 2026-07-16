@@ -8,7 +8,6 @@ import '../widgets/gradient_background.dart';
 import '../widgets/status_hero_card.dart';
 import '../widgets/error_state_view.dart';
 import '../widgets/visual_cctv_card.dart';
-import '../widgets/seismic_ews_dashboard.dart';
 
 /// Tab Beranda — Menampilkan seluruh data dari laporan MAGMA secara lengkap.
 class HomeScreen extends ConsumerWidget {

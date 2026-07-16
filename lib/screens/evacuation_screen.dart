@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,6 +13,22 @@ import '../widgets/glass_card.dart';
 import '../widgets/gradient_background.dart';
 import '../widgets/error_state_view.dart';
 import '../widgets/empty_state_view.dart';
+
+final osrmRouteProvider = FutureProvider.family<List<LatLng>, ({LatLng start, LatLng end})>((ref, args) async {
+  try {
+    final url = Uri.parse(
+        'http://router.project-osrm.org/route/v1/driving/${args.start.longitude},${args.start.latitude};${args.end.longitude},${args.end.latitude}?overview=full&geometries=geojson');
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final coords = data['routes'][0]['geometry']['coordinates'] as List;
+      return coords.map((c) => LatLng(c[1] as double, c[0] as double)).toList();
+    }
+  } catch (e) {
+    debugPrint('Failed to fetch OSRM route: $e');
+  }
+  return [];
+});
 
 /// Tab Rute Evakuasi — Professional Edition with OpenStreetMap.
 class EvacuationScreen extends ConsumerStatefulWidget {
@@ -434,6 +452,14 @@ class _MapSection extends ConsumerWidget {
       userLatLng = LatLng(position.latitude, position.longitude);
     });
 
+    List<LatLng> mapRoutePoints = routePoints;
+    if (userLatLng != null) {
+      final osrmAsync = ref.watch(osrmRouteProvider((start: userLatLng!, end: destinationLatLng)));
+      if (osrmAsync.hasValue && osrmAsync.value!.isNotEmpty) {
+        mapRoutePoints = osrmAsync.value!;
+      }
+    }
+
     return GlassCard(
       padding: EdgeInsets.zero,
       child: Column(
@@ -528,11 +554,11 @@ class _MapSection extends ConsumerWidget {
                   ),
 
                   // Route polyline
-                  if (routePoints.length >= 2)
+                  if (mapRoutePoints.length >= 2)
                     PolylineLayer(
                       polylines: [
                         Polyline(
-                          points: routePoints,
+                          points: mapRoutePoints,
                           color: context.ewsColors.accent.withValues(alpha: 0.8),
                           strokeWidth: 4.0,
                           borderColor: context.ewsColors.accent.withValues(alpha: 0.3),
