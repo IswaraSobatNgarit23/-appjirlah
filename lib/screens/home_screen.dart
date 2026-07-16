@@ -59,14 +59,6 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       _buildSummaryRow(context, status),
 
-                      // 3. PENGAMATAN KEGEMPAAN — Dashboard Seismik EWS
-                      if (status.kegempaanDetails.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        const _SectionHeader(label: 'DASHBOARD SEISMIK EWS'),
-                        const SizedBox(height: 12),
-                        SeismicEwsDashboard(status: status),
-                      ],
-
                       // 3.5. TEKS PENGAMATAN KEGEMPAAN
                       if (status.kegempaan.isNotEmpty) ...[
                         const SizedBox(height: 24),
