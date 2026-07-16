@@ -17,8 +17,8 @@ PB_ADMIN_PASSWORD = os.getenv("PB_ADMIN_PASSWORD", "password_anda")
 MAGMA_URL = "https://magma.esdm.go.id/v1/gunung-api/laporan"
 
 def get_pb_token():
-    """Mendapatkan token admin dari PocketBase"""
-    auth_url = f"{POCKETBASE_URL}/api/admins/auth-with-password"
+    """Mendapatkan token admin dari PocketBase (v0.23+)"""
+    auth_url = f"{POCKETBASE_URL}/api/collections/_superusers/auth-with-password"
     payload = {
         "identity": PB_ADMIN_EMAIL,
         "password": PB_ADMIN_PASSWORD
