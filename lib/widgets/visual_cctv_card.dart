@@ -11,7 +11,6 @@ class VisualCctvCard extends StatefulWidget {
   const VisualCctvCard({
     super.key, 
     required this.status,
-    this.cctvYoutubeId = 'QeL81b9L_5g', // Default to a known live stream ID or placeholder
   });
 
   @override
@@ -21,12 +20,19 @@ class VisualCctvCard extends StatefulWidget {
 class _VisualCctvCardState extends State<VisualCctvCard> {
   late YoutubePlayerController _ytController;
   bool _showCctv = false;
+  int _selectedCameraIndex = 0;
+
+  final List<Map<String, String>> _cameras = [
+    {'name': 'Kamera 1 (Utama)', 'id': 'WyVEvfReElw'},
+    {'name': 'Kamera 2 (Pantauan)', 'id': '1rbBmhRQ5Gs'},
+    {'name': 'Kamera 3 (Alternatif)', 'id': 'Hr1Sv6B-kfM'},
+  ];
 
   @override
   void initState() {
     super.initState();
     _ytController = YoutubePlayerController.fromVideoId(
-      videoId: widget.cctvYoutubeId,
+      videoId: _cameras[0]['id']!,
       autoPlay: false,
       params: const YoutubePlayerParams(
         showControls: true,
@@ -35,6 +41,14 @@ class _VisualCctvCardState extends State<VisualCctvCard> {
         loop: true,
       ),
     );
+  }
+
+  void _switchCamera(int index) {
+    if (_selectedCameraIndex == index) return;
+    setState(() {
+      _selectedCameraIndex = index;
+    });
+    _ytController.loadVideoById(videoId: _cameras[index]['id']!);
   }
 
   @override
@@ -83,6 +97,43 @@ class _VisualCctvCardState extends State<VisualCctvCard> {
           ),
           
           // Content
+          if (_showCctv)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: context.ewsColors.bgCard,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(_cameras.length, (index) {
+                    final isSelected = _selectedCameraIndex == index;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () => _switchCamera(index),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isSelected ? context.ewsColors.accent : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected ? context.ewsColors.accent : context.ewsColors.glassBorder,
+                            ),
+                          ),
+                          child: Text(
+                            _cameras[index]['name']!,
+                            style: context.caption.copyWith(
+                              color: isSelected ? Colors.white : context.ewsColors.textMuted,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+            
           ClipRRect(
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(AppTheme.radiusM - 1),
